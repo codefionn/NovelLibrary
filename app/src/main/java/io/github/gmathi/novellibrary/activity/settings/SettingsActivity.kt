@@ -16,8 +16,6 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DividerItemDecoration
 import com.afollestad.materialdialogs.MaterialDialog
-import com.google.firebase.remoteconfig.FirebaseRemoteConfig
-import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
 import io.github.gmathi.novellibrary.BuildConfig
 import io.github.gmathi.novellibrary.R
 import io.github.gmathi.novellibrary.activity.BaseActivity
@@ -53,8 +51,6 @@ class SettingsActivity : BaseActivity(), GenericAdapter.Listener<String> {
     private var rightButtonCounter = 0
     private var leftButtonCounter = 0
 
-    private val remoteConfig = FirebaseRemoteConfig.getInstance()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
@@ -69,14 +65,6 @@ class SettingsActivity : BaseActivity(), GenericAdapter.Listener<String> {
 
     @Suppress("DEPRECATION")
     private fun setRemoteConfig() {
-        remoteConfig.setConfigSettingsAsync(FirebaseRemoteConfigSettings.Builder().build())
-        val defaults = HashMap<String, Any>()
-        defaults[CODE_NAME_SCRIB] = DEFAULT_CODE
-        defaults[CODE_NAME_NF] = DEFAULT_CODE
-        defaults[CODE_NAME_RRL] = DEFAULT_CODE
-        defaults[CODE_NAME_WW] = DEFAULT_CODE
-        remoteConfig.setDefaultsAsync(defaults)
-        remoteConfig.fetchAndActivate()
     }
 
     private fun setRecyclerView() {
@@ -172,19 +160,6 @@ class SettingsActivity : BaseActivity(), GenericAdapter.Listener<String> {
 
     private fun checkCode(code: String) {
         Log.e(TAG, code)
-        remoteConfig.all.forEach {
-            val value = it.value.asString()
-            if (value == code) {
-                showConfetti()
-                when (it.key) {
-                    CODE_NAME_RRL -> dataCenter.lockRoyalRoad = !dataCenter.lockRoyalRoad
-                    CODE_NAME_NF -> dataCenter.lockNovelFull = !dataCenter.lockNovelFull
-                    CODE_NAME_SCRIB -> dataCenter.lockScribble = !dataCenter.lockScribble
-                    CODE_NAME_WW -> dataCenter.disableWuxiaDownloads = !dataCenter.disableWuxiaDownloads
-                }
-                return
-            }
-        }
     }
 
     private fun showConfetti() {

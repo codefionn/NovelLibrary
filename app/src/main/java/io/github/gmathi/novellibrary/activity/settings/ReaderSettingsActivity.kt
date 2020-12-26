@@ -8,8 +8,6 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DividerItemDecoration
 import com.afollestad.materialdialogs.MaterialDialog
-import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.analytics.ktx.logEvent
 import io.github.gmathi.novellibrary.R
 import io.github.gmathi.novellibrary.activity.BaseActivity
 import io.github.gmathi.novellibrary.adapter.GenericAdapter
@@ -224,13 +222,10 @@ class ReaderSettingsActivity : BaseActivity(), GenericAdapter.Listener<String> {
                 .title(getString(R.string.custom_query_lookups_edit))
                 .inputType(InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE + InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE + InputType.TYPE_CLASS_TEXT)
                 .input(getString(R.string.custom_query_lookups_hint), dataCenter.userSpecifiedSelectorQueries) { _, _ -> }
-                .positiveText(getString(R.string.fui_button_text_save))
+                .positiveText("Save")
                 .negativeText(getString(R.string.cancel))
                 .onPositive { widget, _ ->
                     dataCenter.userSpecifiedSelectorQueries = widget.inputEditText?.text.toString()
-                    firebaseAnalytics.logEvent(FAC.Event.SELECTOR_QUERY) {
-                        param(FirebaseAnalytics.Param.VALUE, widget.inputEditText?.text.toString())
-                    }
                 }
                 .show()
         }

@@ -9,10 +9,8 @@ import androidx.core.view.GravityCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import com.afollestad.materialdialogs.MaterialDialog
-import com.firebase.ui.auth.IdpResponse
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
-import com.google.firebase.auth.FirebaseAuth
 import io.github.gmathi.novellibrary.BuildConfig
 import io.github.gmathi.novellibrary.R
 import io.github.gmathi.novellibrary.dataCenter
@@ -35,12 +33,10 @@ class NavDrawerActivity : BaseActivity(), NavigationView.OnNavigationItemSelecte
     private var currentNavId: Int = R.id.nav_search
 
     private var cloudFlareLoadingDialog: MaterialDialog? = null
-    private var mAuth: FirebaseAuth? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_nav_drawer)
-        mAuth = FirebaseAuth.getInstance()
         navigationView.setNavigationItemSelectedListener(this)
 
         //Initialize custom logging
@@ -210,18 +206,6 @@ class NavDrawerActivity : BaseActivity(), NavigationView.OnNavigationItemSelecte
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         when {
             requestCode == Constants.OPEN_FIREBASE_AUTH_UI -> {
-                val response = IdpResponse.fromResultIntent(data)
-                if (resultCode == Activity.RESULT_OK) {
-                    // Successfully signed in
-                    val user = FirebaseAuth.getInstance().currentUser
-                    Logs.error("NAV USER", user?.displayName)
-                    // ...
-                } else {
-                    // Sign in failed. If response is null the user canceled the
-                    // sign-in flow using the back button. Otherwise check
-                    // response.getError().getErrorCode() and handle the error.
-                    // ...
-                }
             }
             resultCode == Constants.OPEN_DOWNLOADS_RES_CODE -> loadFragment(R.id.nav_downloads)
             requestCode == Constants.IWV_ACT_REQ_CODE -> checkIntentForNotificationData()

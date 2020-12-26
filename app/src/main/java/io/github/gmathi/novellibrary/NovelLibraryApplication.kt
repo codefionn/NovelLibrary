@@ -6,10 +6,6 @@ import android.webkit.WebView
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.NotificationManagerCompat
 import androidx.multidex.MultiDexApplication
-import com.google.android.gms.common.GooglePlayServicesNotAvailableException
-import com.google.android.gms.security.ProviderInstaller
-import com.google.firebase.remoteconfig.FirebaseRemoteConfig
-import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.github.gmathi.novellibrary.database.DBHelper
@@ -131,14 +127,6 @@ class NovelLibraryApplication : MultiDexApplication() {
     }
 
     private fun updateAndroidSecurityProvider() {
-        try {
-            ProviderInstaller.installIfNeeded(this)
-        } catch (e: GooglePlayServicesNotAvailableException) {
-            Logs.error("SecurityException", "Google Play Services not available.")
-        } catch (e: Exception) {
-            Logs.error("Exception", "Other Exception: ${e.localizedMessage}", e)
-
-        }
     }
 
     private fun startSyncService() {
@@ -155,14 +143,6 @@ class NovelLibraryApplication : MultiDexApplication() {
     }
 
     fun setRemoteConfig() {
-        val remoteConfig = FirebaseRemoteConfig.getInstance()
-        remoteConfig.setConfigSettingsAsync(FirebaseRemoteConfigSettings.Builder().build())
-        val defaults = HashMap<String, Any>()
-        defaults[Constants.RemoteConfig.SELECTOR_QUERIES] = "[]"
-        remoteConfig.setDefaultsAsync(defaults)
-        remoteConfig.fetchAndActivate().addOnCompleteListener {
-            dataCenter?.htmlCleanerSelectorQueries = Gson().fromJson(remoteConfig.getString(Constants.RemoteConfig.SELECTOR_QUERIES), object : TypeToken<ArrayList<SelectorQuery>>() {}.type)
-        }
     }
 
 }
