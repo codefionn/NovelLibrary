@@ -1,7 +1,6 @@
 package io.github.gmathi.novellibrary.util
 
 import android.util.Log
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.github.gmathi.novellibrary.BuildConfig
 
 object Logs {
@@ -51,8 +50,6 @@ object Logs {
     }
 
     private fun logToFirebase(logLevel: String, tag: String?, message: String?, throwable: Throwable? = null) {
-        FirebaseCrashlytics.getInstance().log("$logLevel/$tag- $message")
-        throwable?.let { FirebaseCrashlytics.getInstance().recordException(it) }
     }
 
 }
