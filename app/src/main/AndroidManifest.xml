@@ -23,21 +23,16 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true"
         tools:ignore="UnusedAttribute">
-
-        <!--        <activity-->
-        <!--            android:name=".activity.settings.GoogleBackupActivity"-->
-        <!--            android:label="@string/title_activity_google_backup"-->
-        <!--            android:screenOrientation="fullUser"-->
-        <!--            android:theme="@style/DarkTheme_DarkSide">-->
-
+        <!-- <activity -->
+        <!-- android:name=".activity.settings.GoogleBackupActivity" -->
+        <!-- android:label="@string/title_activity_google_backup" -->
+        <!-- android:screenOrientation="fullUser" -->
+        <!-- android:theme="@style/DarkTheme_DarkSide"> -->
         <!-- <intent-filter> -->
         <!-- <action android:name="android.intent.action.MAIN" /> -->
-
-
         <!-- <category android:name="android.intent.category.LAUNCHER" /> -->
         <!-- </intent-filter> -->
-        <!--        </activity>-->
-
+        <!-- </activity> -->
         <!-- [START fcm_default_icon] -->
         <!--
              Set custom default icon. This is used when no icon is set for incoming notification messages.
@@ -135,6 +130,11 @@
         <activity
             android:name=".activity.settings.ContributionsActivity"
             android:label="@string/title_activity_contributions"
+            android:screenOrientation="fullUser"
+            android:theme="@style/DarkTheme_DarkSide" />
+        <activity
+            android:name=".activity.settings.OpenSourceLicensesActivity"
+            android:label="@string/open_source_licenses"
             android:screenOrientation="fullUser"
             android:theme="@style/DarkTheme_DarkSide" />
         <activity

@@ -8,13 +8,10 @@ import android.view.View
 import io.github.gmathi.novellibrary.R
 import io.github.gmathi.novellibrary.activity.*
 import io.github.gmathi.novellibrary.adapter.GenericAdapter
-import io.github.gmathi.novellibrary.util.system.startContributionsActivity
-import io.github.gmathi.novellibrary.util.system.startCopyrightActivity
-import io.github.gmathi.novellibrary.util.system.startLanguagesActivity
-import io.github.gmathi.novellibrary.util.system.startLibrariesUsedActivity
 import io.github.gmathi.novellibrary.util.view.CustomDividerItemDecoration
 import io.github.gmathi.novellibrary.util.applyFont
 import io.github.gmathi.novellibrary.util.setDefaults
+import io.github.gmathi.novellibrary.util.system.*
 import kotlinx.android.synthetic.main.activity_settings.*
 import kotlinx.android.synthetic.main.content_recycler_view.*
 import kotlinx.android.synthetic.main.listitem_settings.view.*
@@ -53,6 +50,7 @@ class MentionSettingsActivity : BaseActivity(), GenericAdapter.Listener<String> 
             getString(R.string.copyright_notice) -> startCopyrightActivity()
             getString(R.string.libraries_used) -> startLibrariesUsedActivity()
             getString(R.string.contributions) -> startContributionsActivity()
+            getString(R.string.open_source_licenses) -> startOpenSourceLicensesActivity()
         }
     }
 
