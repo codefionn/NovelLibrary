@@ -102,6 +102,7 @@
         <item>@string/libraries_used</item>
         <item>@string/contributions</item>
         <item>@string/copyright_notice</item>
+        <item>@string/open_source_licenses</item>
     </string-array>
 
     <string-array name="general_titles_list" translatable="false">
@@ -692,5 +693,6 @@
     <string name="information_webview_outdated">Please update the WebView app for better compatibility</string>
 
     <string name="source_not_installed">Source not installed: %1$s</string>
+    <string name="open_source_licenses">Open Source Licenses</string>
 
 </resources>

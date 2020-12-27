@@ -420,4 +420,7 @@
     <string name="information_webview_outdated">Please update the WebView app for better compatibility</string>
 
     <string name="source_not_installed">Source not installed: %1$s</string>
+
+    <!-- 0.17 -->
+    <string name="open_source_licenses">Open Source Licenses</string>
 </resources>

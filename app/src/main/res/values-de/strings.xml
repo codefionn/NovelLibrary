@@ -422,4 +422,7 @@
     <string name="information_webview_outdated">Bitte aktualisiere die WebView App für bessere Kompatibilität</string>
 
     <string name="source_not_installed">Quelle nicht installiert: %1$s</string>
+
+    <!-- 0.17 -->
+    <string name="open_source_licenses">Open Source Lizenzen</string>
 </resources>

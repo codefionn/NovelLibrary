@@ -156,6 +156,11 @@ fun AppCompatActivity.startContributionsActivity() {
     startActivity(intent)
 }
 
+fun AppCompatActivity.startOpenSourceLicensesActivity() {
+    val intent = Intent(this, OpenSourceLicensesActivity::class.java)
+    startActivity(intent)
+}
+
 fun AppCompatActivity.startCloudFlareBypassActivity(hostName: String) {
     val intent = Intent(this, CloudFlareBypassActivity::class.java)
     val bundle = Bundle()
