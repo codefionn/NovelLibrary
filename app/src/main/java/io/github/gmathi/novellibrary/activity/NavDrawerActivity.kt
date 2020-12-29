@@ -23,9 +23,12 @@ import io.github.gmathi.novellibrary.network.CloudFlareByPasser
 import io.github.gmathi.novellibrary.util.Constants
 import io.github.gmathi.novellibrary.util.Logs
 import io.github.gmathi.novellibrary.util.Utils
+import io.github.gmathi.novellibrary.util.lang.launchUI
 import io.github.gmathi.novellibrary.util.system.*
 import kotlinx.android.synthetic.main.activity_nav_drawer.*
 import kotlinx.android.synthetic.main.app_bar_nav_drawer.*
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import org.cryse.widget.persistentsearch.PersistentSearchView
 
 
@@ -35,12 +38,14 @@ class NavDrawerActivity : BaseActivity(), NavigationView.OnNavigationItemSelecte
     private var currentNavId: Int = R.id.nav_search
 
     private var cloudFlareLoadingDialog: MaterialDialog? = null
-    private var mAuth: FirebaseAuth? = null
+    private var mAuth: Deferred<FirebaseAuth?>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_nav_drawer)
-        mAuth = FirebaseAuth.getInstance()
+        launchFirebase {
+            mAuth = async { FirebaseAuth.getInstance() }
+        }
         navigationView.setNavigationItemSelectedListener(this)
 
         //Initialize custom logging
@@ -56,7 +61,7 @@ class NavDrawerActivity : BaseActivity(), NavigationView.OnNavigationItemSelecte
         snackBar = Snackbar.make(navFragmentContainer, getString(R.string.app_exit), Snackbar.LENGTH_SHORT)
 
         if (Utils.isConnectedToNetwork(this)) {
-            checkForCloudFlare()
+             checkForCloudFlare()
         } else {
             checkIntentForNotificationData()
             loadFragment(currentNavId)
@@ -114,16 +119,19 @@ class NavDrawerActivity : BaseActivity(), NavigationView.OnNavigationItemSelecte
             .build()
 
         cloudFlareLoadingDialog?.show()
+        loadFragment(currentNavId)
 
-        CloudFlareByPasser.check(this, "novelupdates.com") { state ->
-
-            if (!isDestroyed) {
-                if (state == CloudFlareByPasser.State.CREATED || state == CloudFlareByPasser.State.UNNEEDED) {
-                    if (cloudFlareLoadingDialog?.isShowing == true) {
-                        loadFragment(currentNavId)
-                        showWhatsNewDialog()
-                        checkIntentForNotificationData()
-                        cloudFlareLoadingDialog?.dismiss()
+        launchCloudflare {
+            CloudFlareByPasser.check(this@NavDrawerActivity, "novelupdates.com") { state ->
+                launchUI {
+                    if (!isDestroyed) {
+                        if (state == CloudFlareByPasser.State.CREATED || state == CloudFlareByPasser.State.UNNEEDED) {
+                            if (cloudFlareLoadingDialog?.isShowing == true) {
+                                showWhatsNewDialog()
+                                checkIntentForNotificationData()
+                                cloudFlareLoadingDialog?.dismiss()
+                            }
+                        }
                     }
                 }
             }

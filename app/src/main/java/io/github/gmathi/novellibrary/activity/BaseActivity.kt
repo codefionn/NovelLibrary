@@ -31,4 +31,7 @@ abstract class BaseActivity : AppCompatActivity() {
 
     fun launchFirebase(block: suspend CoroutineScope.() -> Unit): Job =
             GlobalScope.launch(firebaseDispatcher, CoroutineStart.DEFAULT, block)
+
+    fun launchCloudflare(block: suspend CoroutineScope.() -> Unit): Job =
+        launchIO(block)
 }
