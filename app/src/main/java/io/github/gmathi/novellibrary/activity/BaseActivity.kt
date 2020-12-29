@@ -14,8 +14,11 @@ import kotlinx.coroutines.*
 
 abstract class BaseActivity : AppCompatActivity() {
 
+    companion object {
+        private val firebaseDispatcher = newSingleThreadContext("FirebaseThread")
+    }
+
     lateinit var firebaseAnalytics: Deferred<FirebaseAnalytics>
-    private val firebaseDispatcher = newSingleThreadContext("FirebaseThread")
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleManager.updateContextLocale(newBase))
