@@ -155,9 +155,11 @@ class ReaderDBPagerActivity :
     }
 
     private fun updateBookmark(webPage: WebPage) {
-        firebaseAnalytics.logEvent(FAC.Event.READ_NOVEL) {
-            param(FAC.Param.NOVEL_NAME, novel.name)
-            param(FAC.Param.NOVEL_URL, novel.url)
+        launchFirebase {
+            firebaseAnalytics.await().logEvent(FAC.Event.READ_NOVEL) {
+                param(FAC.Param.NOVEL_NAME, novel.name)
+                param(FAC.Param.NOVEL_URL, novel.url)
+            }
         }
         dbHelper.updateBookmarkCurrentWebPageUrl(novel.id, webPage.url)
         NovelSync.getInstance(novel)?.applyAsync(lifecycleScope) { if (dataCenter.getSyncBookmarks(it.host)) it.setBookmark(novel, webPage) }
@@ -403,9 +405,11 @@ class ReaderDBPagerActivity :
                     val audioText = webPageDBFragment?.doc?.getFormattedText() ?: return
                     val title = webPageDBFragment.doc?.title() ?: ""
                     startTTSService(audioText, title, novel.id, sourceId)
-                    firebaseAnalytics.logEvent(FAC.Event.LISTEN_NOVEL) {
-                        param(FAC.Param.NOVEL_NAME, novel.name)
-                        param(FAC.Param.NOVEL_URL, novel.url)
+                    launchFirebase {
+                        firebaseAnalytics.await().logEvent(FAC.Event.LISTEN_NOVEL) {
+                            param(FAC.Param.NOVEL_NAME, novel.name)
+                            param(FAC.Param.NOVEL_URL, novel.url)
+                        }
                     }
                 } else {
                     showAlertDialog(title = "Read Aloud", message = "Only supported in Reader Mode!")
@@ -541,9 +545,11 @@ class ReaderDBPagerActivity :
         super.onResume()
         novel.metadata[Constants.MetaDataKeys.LAST_READ_DATE] = Utils.getCurrentFormattedDate()
         dbHelper.updateNovelMetaData(novel)
-        firebaseAnalytics.logEvent(FAC.Event.OPEN_NOVEL) {
-            param(FAC.Param.NOVEL_NAME, novel.name)
-            param(FAC.Param.NOVEL_URL, novel.url)
+        launchFirebase {
+            firebaseAnalytics.await().logEvent(FAC.Event.OPEN_NOVEL) {
+                param(FAC.Param.NOVEL_NAME, novel.name)
+                param(FAC.Param.NOVEL_URL, novel.url)
+            }
         }
     }
 

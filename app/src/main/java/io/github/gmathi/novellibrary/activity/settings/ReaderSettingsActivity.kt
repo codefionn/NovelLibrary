@@ -228,8 +228,10 @@ class ReaderSettingsActivity : BaseActivity(), GenericAdapter.Listener<String> {
                 .negativeText(getString(R.string.cancel))
                 .onPositive { widget, _ ->
                     dataCenter.userSpecifiedSelectorQueries = widget.inputEditText?.text.toString()
-                    firebaseAnalytics.logEvent(FAC.Event.SELECTOR_QUERY) {
-                        param(FirebaseAnalytics.Param.VALUE, widget.inputEditText?.text.toString())
+                    launchFirebase {
+                        firebaseAnalytics.await().logEvent(FAC.Event.SELECTOR_QUERY) {
+                            param(FirebaseAnalytics.Param.VALUE, widget.inputEditText?.text.toString())
+                        }
                     }
                 }
                 .show()

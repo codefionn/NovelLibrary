@@ -218,9 +218,11 @@ class ChaptersPagerActivity : BaseActivity(), ActionMode.Callback {
                             setProgressDialog("Adding chapters to download queue…", it.size)
                             vm.updateChapters(it, ChaptersViewModel.Action.ADD_DOWNLOADS, callback = {
                                 manageDownloadsDialog()
-                                firebaseAnalytics.logEvent(FAC.Event.DOWNLOAD_NOVEL) {
-                                    param(FAC.Param.NOVEL_NAME, vm.novel.name)
-                                    param(FAC.Param.NOVEL_URL, vm.novel.url)
+                                launchFirebase {
+                                    firebaseAnalytics.await().logEvent(FAC.Event.DOWNLOAD_NOVEL) {
+                                        param(FAC.Param.NOVEL_NAME, vm.novel.name)
+                                        param(FAC.Param.NOVEL_URL, vm.novel.url)
+                                    }
                                 }
                             })
                         }
@@ -231,9 +233,13 @@ class ChaptersPagerActivity : BaseActivity(), ActionMode.Callback {
             R.id.action_add_to_library -> {
                 vm.addNovelToLibrary()
                 invalidateOptionsMenu()
-                firebaseAnalytics.logEvent(FAC.Event.ADD_NOVEL) {
-                    param(FAC.Param.NOVEL_NAME, vm.novel.name)
-                    param(FAC.Param.NOVEL_URL, vm.novel.url)
+                launchFirebase {
+                    launchFirebase {
+                        firebaseAnalytics.await().logEvent(FAC.Event.ADD_NOVEL) {
+                            param(FAC.Param.NOVEL_NAME, vm.novel.name)
+                            param(FAC.Param.NOVEL_URL, vm.novel.url)
+                        }
+                    }
                 }
                 return true
             }
@@ -344,9 +350,11 @@ class ChaptersPagerActivity : BaseActivity(), ActionMode.Callback {
                                 setProgressDialog("Add to Downloads…", listToDownload.size)
                                 vm.updateChapters(listToDownload, ChaptersViewModel.Action.ADD_DOWNLOADS) {
                                     manageDownloadsDialog()
-                                    firebaseAnalytics.logEvent(FAC.Event.DOWNLOAD_NOVEL) {
-                                        param(FAC.Param.NOVEL_NAME, vm.novel.name)
-                                        param(FAC.Param.NOVEL_URL, vm.novel.url)
+                                    launchFirebase {
+                                        firebaseAnalytics.await().logEvent(FAC.Event.DOWNLOAD_NOVEL) {
+                                            param(FAC.Param.NOVEL_NAME, vm.novel.name)
+                                            param(FAC.Param.NOVEL_URL, vm.novel.url)
+                                        }
                                     }
                                 }
                                 mode?.finish()

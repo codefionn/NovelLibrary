@@ -24,6 +24,7 @@ import kotlinx.android.synthetic.main.activity_nav_drawer.*
 import kotlinx.android.synthetic.main.fragment_search.*
 import org.cryse.widget.persistentsearch.PersistentSearchView
 import org.cryse.widget.persistentsearch.SearchItem
+import org.jsoup.Connection
 
 
 class SearchFragment : BaseFragment() {
@@ -85,8 +86,11 @@ class SearchFragment : BaseFragment() {
                 if (query != null) {
                     searchNovels(query)
                     searchView.setSuggestionBuilder(SuggestionsBuilder(dataCenter.loadNovelSearchHistory()))
-                    (activity as BaseActivity).firebaseAnalytics.logEvent(FAC.Event.SEARCH_NOVEL) {
-                        param(FAC.Param.SEARCH_TERM, query)
+                    val activity = activity as BaseActivity
+                    activity.launchFirebase {
+                        activity.firebaseAnalytics.await().logEvent(FAC.Event.SEARCH_NOVEL) {
+                            param(FAC.Param.SEARCH_TERM, query)
+                        }
                     }
                 }
             }

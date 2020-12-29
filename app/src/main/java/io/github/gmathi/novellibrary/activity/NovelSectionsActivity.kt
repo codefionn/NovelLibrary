@@ -170,8 +170,10 @@ class NovelSectionsActivity : BaseActivity(), GenericAdapter.Listener<NovelSecti
                         dbHelper.deleteNovelSection(novelSection.id)
                     }
                     setData()
-                    firebaseAnalytics.logEvent(FAC.Event.REMOVE_NOVEL_SECTION) {
-                        param(FAC.Param.NOVEL_SECTION_NAME, novelSection.name ?: "N/A")
+                    launchFirebase {
+                        firebaseAnalytics.await().logEvent(FAC.Event.REMOVE_NOVEL_SECTION) {
+                            param(FAC.Param.NOVEL_SECTION_NAME, novelSection.name ?: "N/A")
+                        }
                     }
                     dialog.dismiss()
                 }
@@ -200,8 +202,10 @@ class NovelSectionsActivity : BaseActivity(), GenericAdapter.Listener<NovelSecti
                             withContext(Dispatchers.IO) { if (dataCenter.getSyncAddNovels(it.host)) it.renameSection(novelSection, oldName, newName) }
                         }
                     }
-                    firebaseAnalytics.logEvent(FAC.Event.RENAME_NOVEL_SECTION) {
-                        param(FAC.Param.NOVEL_SECTION_NAME, newName)
+                    launchFirebase {
+                        firebaseAnalytics.await().logEvent(FAC.Event.RENAME_NOVEL_SECTION) {
+                            param(FAC.Param.NOVEL_SECTION_NAME, newName)
+                        }
                     }
                 } else {
                     MaterialDialog.Builder(this@NovelSectionsActivity).content(getString(R.string.novel_section_name_error)).show()
@@ -219,8 +223,10 @@ class NovelSectionsActivity : BaseActivity(), GenericAdapter.Listener<NovelSecti
                 if (name.isNotBlank() && dbHelper.getNovelSection(name) == null) {
                     dbHelper.createNovelSection(name)
                     setData()
-                    firebaseAnalytics.logEvent(FAC.Event.ADD_NOVEL_SECTION) {
-                        param(FAC.Param.NOVEL_SECTION_NAME, name)
+                    launchFirebase {
+                        firebaseAnalytics.await().logEvent(FAC.Event.ADD_NOVEL_SECTION) {
+                            param(FAC.Param.NOVEL_SECTION_NAME, name)
+                        }
                     }
                 } else {
                     MaterialDialog.Builder(this@NovelSectionsActivity).content(getString(R.string.novel_section_name_error)).show()

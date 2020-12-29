@@ -221,9 +221,11 @@ class NovelDetailsActivity : BaseActivity(), TextViewLinkHandler.OnClickListener
         if (novel.id == -1L) {
             novel.id = dbHelper.insertNovel(novel)
             NovelSync.getInstance(novel)?.applyAsync(lifecycleScope) { if (dataCenter.getSyncAddNovels(it.host)) it.addNovel(novel, null) }
-            firebaseAnalytics.logEvent(FAC.Event.ADD_NOVEL) {
-                param(FAC.Param.NOVEL_NAME, novel.name)
-                param(FAC.Param.NOVEL_URL, novel.url)
+            launchFirebase {
+                firebaseAnalytics.await().logEvent(FAC.Event.ADD_NOVEL) {
+                    param(FAC.Param.NOVEL_NAME, novel.name)
+                    param(FAC.Param.NOVEL_URL, novel.url)
+                }
             }
         }
     }
@@ -323,9 +325,11 @@ class NovelDetailsActivity : BaseActivity(), TextViewLinkHandler.OnClickListener
         novel.id = -1L
         setNovelAddToLibraryButton()
         invalidateOptionsMenu()
-        firebaseAnalytics.logEvent(FAC.Event.REMOVE_NOVEL) {
-            param(FAC.Param.NOVEL_NAME, novel.name)
-            param(FAC.Param.NOVEL_URL, novel.url)
+        launchFirebase {
+            firebaseAnalytics.await().logEvent(FAC.Event.REMOVE_NOVEL) {
+                param(FAC.Param.NOVEL_NAME, novel.name)
+                param(FAC.Param.NOVEL_URL, novel.url)
+            }
         }
     }
 
