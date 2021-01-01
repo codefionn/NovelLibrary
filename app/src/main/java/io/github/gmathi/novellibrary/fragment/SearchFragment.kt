@@ -8,19 +8,21 @@ import android.view.ViewGroup
 import androidx.core.view.GravityCompat
 import io.github.gmathi.novellibrary.R
 import io.github.gmathi.novellibrary.activity.BaseActivity
+import io.github.gmathi.novellibrary.activity.NavDrawerActivity
 import io.github.gmathi.novellibrary.adapter.GenericAdapter
 import io.github.gmathi.novellibrary.adapter.GenericFragmentStatePagerAdapter
 import io.github.gmathi.novellibrary.adapter.NavPageListener
 import io.github.gmathi.novellibrary.adapter.SearchResultsListener
 import io.github.gmathi.novellibrary.dataCenter
+import io.github.gmathi.novellibrary.databinding.ActivityImportLibraryBinding
+import io.github.gmathi.novellibrary.databinding.ActivityNavDrawerBinding
+import io.github.gmathi.novellibrary.databinding.FragmentSearchBinding
 import io.github.gmathi.novellibrary.extensions.FAC
 import io.github.gmathi.novellibrary.model.database.Novel
 import io.github.gmathi.novellibrary.util.view.SimpleAnimationListener
 import io.github.gmathi.novellibrary.util.view.SuggestionsBuilder
 import io.github.gmathi.novellibrary.util.addToNovelSearchHistory
 import io.github.gmathi.novellibrary.util.system.hideSoftKeyboard
-import kotlinx.android.synthetic.main.activity_nav_drawer.*
-import kotlinx.android.synthetic.main.fragment_search.*
 import org.cryse.widget.persistentsearch.PersistentSearchView
 import org.cryse.widget.persistentsearch.SearchItem
 
@@ -31,13 +33,18 @@ class SearchFragment : BaseFragment() {
     var searchMode: Boolean = false
     private var searchTerm: String? = null
 
+    private lateinit var binding: FragmentSearchBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
-        inflater.inflate(R.layout.fragment_search, container, false)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_search, container, false) ?: return null
+        binding = FragmentSearchBinding.bind(view)
+        return view
+    }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
@@ -64,32 +71,34 @@ class SearchFragment : BaseFragment() {
         searchMode = false
         val titles = resources.getStringArray(R.array.search_tab_titles)
         val navPageAdapter = GenericFragmentStatePagerAdapter(childFragmentManager, titles, titles.size, NavPageListener())
-        viewPager.offscreenPageLimit = 3
-        viewPager.adapter = navPageAdapter
-        tabStrip.setViewPager(viewPager)
+        binding.viewPager.offscreenPageLimit = 3
+        binding.viewPager.adapter = navPageAdapter
+        binding.tabStrip.setViewPager(binding.viewPager)
     }
 
     private fun setSearchView() {
         //searchView.setHomeButtonVisibility(View.GONE)
-        searchView.setHomeButtonListener {
+        binding.searchView.setHomeButtonListener {
             hideSoftKeyboard()
-            activity?.drawerLayout?.openDrawer(GravityCompat.START)
+            if (activity != null && activity is NavDrawerActivity) {
+                (requireActivity() as NavDrawerActivity).binding.drawerLayout?.openDrawer(GravityCompat.START)
+            }
         }
 
-        searchView.setSuggestionBuilder(SuggestionsBuilder(dataCenter.loadNovelSearchHistory()))
-        searchView.setSearchListener(object : PersistentSearchView.SearchListener {
+        binding.searchView.setSuggestionBuilder(SuggestionsBuilder(dataCenter.loadNovelSearchHistory()))
+        binding.searchView.setSearchListener(object : PersistentSearchView.SearchListener {
 
             override fun onSearch(query: String?) {
                 query?.addToNovelSearchHistory()
                 if (query != null) {
                     searchNovels(query)
-                    searchView.setSuggestionBuilder(SuggestionsBuilder(dataCenter.loadNovelSearchHistory()))
+                    binding.searchView.setSuggestionBuilder(SuggestionsBuilder(dataCenter.loadNovelSearchHistory()))
                 }
             }
 
             override fun onSearchEditOpened() {
-                searchViewBgTint.visibility = View.VISIBLE
-                searchViewBgTint
+                binding.searchViewBgTint.visibility = View.VISIBLE
+                binding.searchViewBgTint
                     .animate()
                     .alpha(1.0f)
                     .setDuration(300)
@@ -98,14 +107,14 @@ class SearchFragment : BaseFragment() {
             }
 
             override fun onSearchEditClosed() {
-                searchViewBgTint
+                binding.searchViewBgTint
                     .animate()
                     .alpha(0.0f)
                     .setDuration(300)
                     .setListener(object : SimpleAnimationListener() {
                         override fun onAnimationEnd(animation: Animator) {
                             super.onAnimationEnd(animation)
-                            searchViewBgTint.visibility = View.GONE
+                            binding.searchViewBgTint.visibility = View.GONE
                         }
                     })
                     .start()
@@ -131,8 +140,8 @@ class SearchFragment : BaseFragment() {
 
             override fun onSearchEditBackPressed(): Boolean {
                 //Toast.makeText(context, "onSearchEditBackPressed", Toast.LENGTH_SHORT).show()
-                if (searchView.searchOpen) {
-                    searchView.closeSearch()
+                if (binding.searchView.searchOpen) {
+                    binding.searchView.closeSearch()
                     return true
                 }
                 return false
@@ -162,13 +171,13 @@ class SearchFragment : BaseFragment() {
         val searchPageAdapter: GenericFragmentStatePagerAdapter
         searchPageAdapter = GenericFragmentStatePagerAdapter(childFragmentManager, titles.toTypedArray(), titles.size, SearchResultsListener(searchTerm, titles))
 
-        viewPager.offscreenPageLimit = 2
-        viewPager.adapter = searchPageAdapter
-        tabStrip.setViewPager(viewPager)
+        binding.viewPager.offscreenPageLimit = 2
+        binding.viewPager.adapter = searchPageAdapter
+        binding.tabStrip.setViewPager(binding.viewPager)
     }
 
     fun closeSearch() {
-        searchView.closeSearch()
+        binding.searchView.closeSearch()
         setViewPager()
     }
 
