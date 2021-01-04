@@ -2,6 +2,7 @@ package io.github.gmathi.novellibrary.util
 
 import android.util.Log
 import io.github.gmathi.novellibrary.BuildConfig
+import java.lang.Exception
 
 object Logs {
 
