@@ -20,24 +20,31 @@ import com.afollestad.materialdialogs.Theme
 import com.github.johnpersano.supertoasts.library.Style
 import com.github.johnpersano.supertoasts.library.SuperActivityToast
 import com.github.johnpersano.supertoasts.library.utils.PaletteUtils
+import com.tingyik90.snackprogressbar.SnackProgressBar
+import com.tingyik90.snackprogressbar.SnackProgressBarManager
 import io.github.gmathi.novellibrary.R
 import io.github.gmathi.novellibrary.activity.BaseActivity
 import io.github.gmathi.novellibrary.adapter.GenericAdapter
 import io.github.gmathi.novellibrary.dataCenter
+import io.github.gmathi.novellibrary.databinding.ActivitySettingsBinding
+import io.github.gmathi.novellibrary.databinding.ListitemTitleSubtitleWidgetBinding
 import io.github.gmathi.novellibrary.dbHelper
 import io.github.gmathi.novellibrary.util.Constants.WORK_KEY_RESULT
+import io.github.gmathi.novellibrary.util.Utils
 import io.github.gmathi.novellibrary.util.view.CustomDividerItemDecoration
 import io.github.gmathi.novellibrary.util.applyFont
+import io.github.gmathi.novellibrary.util.lang.launchIO
+import io.github.gmathi.novellibrary.util.lang.launchUI
 import io.github.gmathi.novellibrary.util.setDefaults
 import io.github.gmathi.novellibrary.worker.BackupWorker
 import io.github.gmathi.novellibrary.worker.oneTimeBackupWorkRequest
 import io.github.gmathi.novellibrary.worker.oneTimeRestoreWorkRequest
 import io.github.gmathi.novellibrary.worker.periodicBackupWorkRequest
-import kotlinx.android.synthetic.main.activity_settings.*
-import kotlinx.android.synthetic.main.content_recycler_view.*
-import kotlinx.android.synthetic.main.listitem_title_subtitle_widget.view.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import java.io.File
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 
 class BackupSettingsActivity : BaseActivity(), GenericAdapter.Listener<String> {
@@ -66,11 +73,17 @@ class BackupSettingsActivity : BaseActivity(), GenericAdapter.Listener<String> {
     private var files: Boolean = false
 
     private var workRequestId: UUID? = null
+    
+    private val isDeletingFiles = AtomicBoolean(false)
+    
+    private lateinit var binding: ActivitySettingsBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_settings)
-        setSupportActionBar(toolbar)
+        
+        binding = ActivitySettingsBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         setRecyclerView()
     }
@@ -80,9 +93,9 @@ class BackupSettingsActivity : BaseActivity(), GenericAdapter.Listener<String> {
         settingsItemsDescription = ArrayList(resources.getStringArray(R.array.backup_and_restore_subtitles_list).asList())
         setBackupFrequencyDescription()
         adapter = GenericAdapter(items = settingsItems, layoutResId = R.layout.listitem_title_subtitle_widget, listener = this)
-        recyclerView.setDefaults(adapter)
-        recyclerView.addItemDecoration(CustomDividerItemDecoration(this, DividerItemDecoration.VERTICAL))
-        swipeRefreshLayout.isEnabled = false
+        binding.contentRecyclerView.recyclerView.setDefaults(adapter)
+        binding.contentRecyclerView.recyclerView.addItemDecoration(CustomDividerItemDecoration(this, DividerItemDecoration.VERTICAL))
+        binding.contentRecyclerView.swipeRefreshLayout.isEnabled = false
     }
 
     private fun setBackupFrequencyDescription(backupFrequency: Int = dataCenter.backupFrequency) {
@@ -99,15 +112,16 @@ class BackupSettingsActivity : BaseActivity(), GenericAdapter.Listener<String> {
     }
 
     override fun bind(item: String, itemView: View, position: Int) {
-        itemView.widgetChevron.visibility = View.GONE
-        itemView.widgetSwitch.visibility = View.GONE
-        itemView.currentValue.visibility = View.GONE
-        itemView.widget.visibility = View.GONE
-        itemView.blackOverlay.visibility = View.GONE
+        val itemBinding = ListitemTitleSubtitleWidgetBinding.bind(itemView)
+        itemBinding.widgetChevron.visibility = View.GONE
+        itemBinding.widgetSwitch.visibility = View.GONE
+        itemBinding.currentValue.visibility = View.GONE
+        itemBinding.widget.visibility = View.GONE
+        itemBinding.blackOverlay.visibility = View.GONE
 
-        itemView.title.applyFont(assets).text = item
-        itemView.subtitle.applyFont(assets).text = settingsItemsDescription[position]
-        itemView.widgetSwitch.setOnCheckedChangeListener(null)
+        itemBinding.title.applyFont(assets).text = item
+        itemBinding.subtitle.applyFont(assets).text = settingsItemsDescription[position]
+        itemBinding.widgetSwitch.setOnCheckedChangeListener(null)
 
         itemView.setBackgroundColor(
             if (position % 2 == 0) ContextCompat.getColor(this, R.color.black_transparent)
@@ -203,7 +217,7 @@ class BackupSettingsActivity : BaseActivity(), GenericAdapter.Listener<String> {
         super.onDestroy()
     }
 
-    private fun showDialog(title: String? = null, content: String? = null, iconRes: Int = R.drawable.ic_warning_white_vector, isProgress: Boolean = false) {
+    private fun showDialog(title: String? = null, content: String? = null, iconRes: Int = R.drawable.ic_warning_white_vector) {
         if (confirmDialog != null && confirmDialog!!.isShowing)
             confirmDialog!!.dismiss()
 
@@ -212,17 +226,13 @@ class BackupSettingsActivity : BaseActivity(), GenericAdapter.Listener<String> {
         if (title != null)
             confirmDialogBuilder.title(getString(R.string.confirm_action))
 
-        if (isProgress)
-            confirmDialogBuilder.progress(true, 100)
-
         if (content != null)
             confirmDialogBuilder.content(content)
 
         confirmDialogBuilder
             .iconRes(iconRes)
 
-        if (!isProgress)
-            confirmDialogBuilder.positiveText(getString(R.string.okay)).onPositive { dialog, _ -> dialog.dismiss() }
+        confirmDialogBuilder.positiveText(getString(R.string.okay)).onPositive { dialog, _ -> dialog.dismiss() }
 
         confirmDialog = confirmDialogBuilder.build()
         confirmDialog?.show()
@@ -381,31 +391,39 @@ class BackupSettingsActivity : BaseActivity(), GenericAdapter.Listener<String> {
             .positiveText(R.string.clear)
             .negativeText(R.string.cancel)
             .onPositive { dialog, _ ->
-                val progressDialog = MaterialDialog.Builder(this)
-                    .title(getString(R.string.clearing_data))
-                    .content(getString(R.string.please_wait))
-                    .progress(true, 0)
-                    .cancelable(false)
-                    .canceledOnTouchOutside(false)
-                    .show()
-                deleteFiles(progressDialog)
-                dialog.dismiss()
+                val snackProgressBarManager = Utils.createSnackProgressBarManager(findViewById(android.R.id.content), this)
+                val snackProgressBar = SnackProgressBar(SnackProgressBar.TYPE_NORMAL,
+                    getString(R.string.clearing_data) + " - " + getString(R.string.please_wait))
+                launchUI {
+                    snackProgressBarManager.show(
+                        snackProgressBar,
+                        SnackProgressBarManager.LENGTH_INDEFINITE
+                    )
+                }
+                deleteFiles(snackProgressBarManager)
             }
             .onNegative { dialog, _ -> dialog.dismiss() }
             .show()
     }
 
-    private fun deleteFiles(dialog: MaterialDialog) {
-        try {
-            deleteDir(cacheDir)
-            deleteDir(filesDir)
-            dbHelper.removeAll()
-            dataCenter.saveNovelSearchHistory(ArrayList())
-            dialog.dismiss()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+    private fun deleteFiles(dialog: SnackProgressBarManager) {
+        launchIO {
+            isDeletingFiles.set(true)
+            try {
+                deleteDir(cacheDir)
+                deleteDir(filesDir)
+                dbHelper.removeAll()
+                dataCenter.saveNovelSearchHistory(ArrayList())
 
+                async(Dispatchers.Main) {
+                    dialog.disable()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isDeletingFiles.set(false)
+            }
+        }
     }
 
     private fun deleteDir(dir: File?): Boolean {
@@ -420,5 +438,13 @@ class BackupSettingsActivity : BaseActivity(), GenericAdapter.Listener<String> {
         } else {
             false
         }
+    }
+
+    override fun onBackPressed() {
+        if (isDeletingFiles.get()) {
+            return
+        }
+
+        super.onBackPressed()
     }
 }
