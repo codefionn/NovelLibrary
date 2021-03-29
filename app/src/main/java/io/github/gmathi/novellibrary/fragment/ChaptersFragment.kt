@@ -117,9 +117,9 @@ class ChaptersFragment : BaseFragment(),
     private fun scrollToFirstUnread(chaptersSettings: ArrayList<WebPageSettings>) {
         if (novel.currentChapterUrl != null) {
             val index = if (novel.metadata["chapterOrder"] == "des")
-                adapter.items.indexOfLast { chapter -> chaptersSettings.firstOrNull { it.url == chapter.url && it.isRead == 0 } != null }
+                adapter.items.indexOfLast { chapter -> chaptersSettings.firstOrNull { it.url == chapter.url && !it.isRead } != null }
             else
-                adapter.items.indexOfFirst { chapter -> chaptersSettings.firstOrNull { it.url == chapter.url && it.isRead == 0 } != null }
+                adapter.items.indexOfFirst { chapter -> chaptersSettings.firstOrNull { it.url == chapter.url && !it.isRead } != null }
             if (index != -1)
                 binding.recyclerView.scrollToPosition(index)
         }
@@ -165,7 +165,7 @@ class ChaptersFragment : BaseFragment(),
             itemBinding.availableOfflineImageView.visibility = View.GONE
         }
 
-        itemBinding.isReadView.visibility = if (webPageSettings?.isRead == 1) View.VISIBLE else View.GONE
+        itemBinding.isReadView.visibility = if (webPageSettings?.isRead == true) View.VISIBLE else View.GONE
         itemBinding.bookmarkView.visibility = if (item.url == novel.currentChapterUrl) View.VISIBLE else View.GONE
 
         itemBinding.chapterTitle.text = item.chapter

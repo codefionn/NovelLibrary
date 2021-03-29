@@ -66,6 +66,9 @@ import io.github.gmathi.novellibrary.util.Utils.getFormattedText
 import io.github.gmathi.novellibrary.util.lang.launchUI
 import io.github.gmathi.novellibrary.util.system.*
 import io.github.gmathi.novellibrary.util.view.TwoWaySeekBar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 import java.io.File
 import java.util.*
@@ -151,7 +154,9 @@ class ReaderDBPagerActivity :
         novel.currentChapterUrl?.let { bookmarkUrl ->
             val index = webPages.indexOfFirst { it.url == bookmarkUrl }
             if (index != -1) binding.viewPager.currentItem = index
-            if (index == 0) updateBookmark(webPages[0])
+            lifecycleScope.launch {
+                if (index == 0) updateBookmark(webPages[0])
+            }
         }
 
         //Set up the Slide-Out Reader Menu.
@@ -168,7 +173,7 @@ class ReaderDBPagerActivity :
             binding.menuNav.visibility = INVISIBLE
     }
 
-    private fun updateBookmark(webPage: WebPage) {
+    private suspend fun updateBookmark(webPage: WebPage) = withContext(Dispatchers.IO) {
         firebaseAnalytics.logEvent(FAC.Event.READ_NOVEL) {
             param(FAC.Param.NOVEL_NAME, novel.name)
             param(FAC.Param.NOVEL_URL, novel.url)
@@ -178,8 +183,9 @@ class ReaderDBPagerActivity :
         NovelSync.getInstance(novel)?.applyAsync(lifecycleScope) { if (dataCenter.getSyncBookmarks(it.host)) it.setBookmark(novel, webPage) }
         val webPageSettings = db.webPageSettingsDao().findOneByUrl(webPage.url)
         if (webPageSettings != null) {
-            webPageSettings.isRead = 1
+            webPageSettings.isRead = true
             db.webPageSettingsDao().updateWebPageSettingsReadStatus(webPageSettings)
+            println(db.webPageSettingsDao().findOneByUrl(webPage.url))
         }
     }
 
@@ -194,7 +200,9 @@ class ReaderDBPagerActivity :
     }
 
     override fun onPageSelected(position: Int) {
-        updateBookmark(webPage = webPages[position])
+        lifecycleScope.launch {
+            updateBookmark(webPage = webPages[position])
+        }
     }
 
     override fun onPageScrollStateChanged(position: Int) {
@@ -280,14 +288,16 @@ class ReaderDBPagerActivity :
         }
     }
 
-    fun checkUrl(url: String): Boolean {
-        val webPageSettings = db.webPageSettingsDao().findOneByRedirectUrl(url) ?: return false
-        val webPage = db.webPageDao().findOneByUrl(webPageSettings.url) ?: return false
+    suspend fun checkUrl(url: String): Boolean = withContext(Dispatchers.IO) {
+        val webPageSettings = db.webPageSettingsDao().findOneByRedirectUrl(url) ?: return@withContext false
+        val webPage = db.webPageDao().findOneByUrl(webPageSettings.url) ?: return@withContext false
         val index = db.webPageDao().findByNovelAndSourceId(novel.id, sourceId).indexOf(webPage)
-        return if (index == -1)
+        return@withContext if (index == -1)
             false
         else {
-            binding.viewPager.currentItem = index
+            withContext(Dispatchers.Main) {
+                binding.viewPager.currentItem = index
+            }
             updateBookmark(webPage)
             true
         }

@@ -1,9 +1,9 @@
 package io.github.gmathi.novellibrary.database.dao
 
 import androidx.room.*
-import io.github.gmathi.novellibrary.database.DBKeys
 import io.github.gmathi.novellibrary.model.database.WebPageSettings
 import io.github.gmathi.novellibrary.util.Constants
+import java.util.*
 
 @Dao
 interface WebPageSettingsDao {
@@ -43,9 +43,13 @@ interface WebPageSettingsDao {
     @Query("SELECT * FROM web_page_settings")
     fun getAll(): List<WebPageSettings>
 
+    @Transaction
     fun updateWebPageSettingsReadStatus(webPageSettings: WebPageSettings) {
-        if (webPageSettings.isRead == 0) {
+        if (!webPageSettings.isRead) {
             webPageSettings.metadata.remove(Constants.MetaDataKeys.SCROLL_POSITION)
+        }
+        else {
+            webPageSettings.metadata[Constants.MetaDataKeys.LAST_READ_DATE] = Date().toString()
         }
 
         update(webPageSettings)

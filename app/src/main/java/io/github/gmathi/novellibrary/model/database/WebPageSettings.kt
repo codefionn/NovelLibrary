@@ -20,8 +20,8 @@ data class WebPageSettings(@PrimaryKey
 
     @ColumnInfo(name = DBKeys.KEY_TITLE)
     var title: String? = null
-    @ColumnInfo(name = DBKeys.KEY_IS_READ)
-    var isRead: Int = 0
+    @ColumnInfo(name = DBKeys.KEY_IS_READ, typeAffinity = ColumnInfo.INTEGER)
+    var isRead: Boolean = false
     @ColumnInfo(name = DBKeys.KEY_FILE_PATH)
     var filePath: String? = null
     @ColumnInfo(name = DBKeys.KEY_REDIRECT_URL)
@@ -40,7 +40,7 @@ data class WebPageSettings(@PrimaryKey
         var result = url.hashCode()
         result = 31 * result + novelId.hashCode()
         result = 31 * result + (title?.hashCode() ?: 0)
-        result = 31 * result + isRead
+        result = 31 * result + (if (isRead) 1 else 0)
         result = 31 * result + (filePath?.hashCode() ?: 0)
         result = 31 * result + (redirectedUrl?.hashCode() ?: 0)
         result = 31 * result + metadata.hashCode()
@@ -49,9 +49,5 @@ data class WebPageSettings(@PrimaryKey
 
     override fun toString(): String {
         return "WebPageSettings(url='$url', novelId=$novelId, title=$title, isRead=$isRead, filePath=$filePath, redirectedUrl=$redirectedUrl, metadata=$metadata)"
-    }
-
-    fun setIsRead(isRead: Int) {
-        this.isRead = isRead
     }
 }

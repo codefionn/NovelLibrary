@@ -109,9 +109,14 @@ class WebPageDBFragment : BaseFragment() {
         }
 
         // Load data from webPage into webView
-        loadData()
-        binding.swipeRefreshLayout.setOnRefreshListener { loadData(true) }
-
+        lifecycleScope.launch {
+            loadData()
+            binding.swipeRefreshLayout.setOnRefreshListener {
+                lifecycleScope.launch {
+                    loadData(true)
+                }
+            }
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -154,7 +159,9 @@ class WebPageDBFragment : BaseFragment() {
                         Toast.makeText(activity, "Cloud Flare Bypassed", Toast.LENGTH_SHORT).show()
                         binding.readerWebView.loadUrl("about:blank")
                         binding.readerWebView.clearHistory()
-                        loadData()
+                        lifecycleScope.launch {
+                            loadData()
+                        }
                     }
                 }
             }
@@ -184,21 +191,34 @@ class WebPageDBFragment : BaseFragment() {
 //                else if (history.last() != webPage) history.add(webPage!!)
 
                 //Handle the known links like next and previous chapter if downloaded
-                if (checkUrl(url)) return true
-
-                if (dataCenter.readerMode)
-                    url?.let {
-
-                        //If url is an image
-                        if (url.endsWith(".jpg", true) || url.endsWith(".jpeg", true) || url.endsWith(".png"))
-                            return false //default loading
-
-                        downloadWebPage(url)
-                        return true
+                var result = false
+                lifecycleScope.launch {
+                    if (checkUrl(url)) {
+                        result = true
+                        return@launch
                     }
 
+                    if (dataCenter.readerMode)
+                        url?.let {
+
+                            //If url is an image
+                            if (url.endsWith(".jpg", true) || url.endsWith(
+                                    ".jpeg",
+                                    true
+                                ) || url.endsWith(".png")
+                            ) {
+                                result = false
+                                return@launch //default loading
+                            }
+
+                            downloadWebPage(url)
+                            result = true
+                            return@launch
+                        }
+                }
+
                 //If everything else fails, default loading of the WebView
-                return false
+                return result
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
@@ -224,7 +244,7 @@ class WebPageDBFragment : BaseFragment() {
         changeTextSize()
     }
 
-    private fun loadData(liveFromWeb: Boolean = false) {
+    private suspend fun loadData(liveFromWeb: Boolean = false) = withContext(Dispatchers.Main) {
         doc = null
 
         binding.readerWebView.apply {
@@ -419,9 +439,11 @@ class WebPageDBFragment : BaseFragment() {
     }
 
     fun goBack() {
-        webPageSettings = history.last()
-        history.remove(webPageSettings)
-        loadData()
+        lifecycleScope.launch {
+            webPageSettings = history.last()
+            history.remove(webPageSettings)
+            loadData()
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -472,8 +494,8 @@ class WebPageDBFragment : BaseFragment() {
         }
     }
 
-    fun checkUrl(url: String?): Boolean {
-        if (url == null) return false
+    suspend fun checkUrl(url: String?): Boolean = withContext(Dispatchers.IO) {
+        if (url == null) return@withContext false
         if (webPageSettings.metadata.containsKey(Constants.MetaDataKeys.OTHER_LINKED_WEB_PAGES)) {
             val links: ArrayList<String> = Gson().fromJson(webPageSettings.metadata[Constants.MetaDataKeys.OTHER_LINKED_WEB_PAGES], object : TypeToken<java.util.ArrayList<String>>() {}.type)
             links.forEach {
@@ -482,36 +504,40 @@ class WebPageDBFragment : BaseFragment() {
                     history.add(tempWebPageSettings)
                     webPageSettings = tempWebPageSettings
                     loadData()
-                    return@checkUrl true
+                    return@withContext true
                 }
             }
         }
 
-        val readerActivity = (activity as ReaderDBPagerActivity?) ?: return false
-        return readerActivity.checkUrl(url)
+        val readerActivity = (activity as ReaderDBPagerActivity?) ?: return@withContext false
+        return@withContext readerActivity.checkUrl(url)
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onReaderSettingsChanged(event: ReaderSettingsEvent) {
-        when (event.setting) {
-            ReaderSettingsEvent.NIGHT_MODE -> {
-                applyTheme()
-            }
-            ReaderSettingsEvent.READER_MODE -> {
-                binding.readerWebView.loadUrl("about:blank")
-                binding.readerWebView.clearHistory()
-                binding.readerWebView.settings.javaScriptEnabled = !dataCenter.javascriptDisabled || dataCenter.readerMode
-                loadData()
-            }
-            ReaderSettingsEvent.TEXT_SIZE -> {
-                changeTextSize()
-            }
-            ReaderSettingsEvent.JAVA_SCRIPT -> {
-                binding.readerWebView.settings.javaScriptEnabled = !dataCenter.javascriptDisabled || dataCenter.readerMode
-                loadData()
-            }
-            ReaderSettingsEvent.FONT -> {
-                loadData()
+        lifecycleScope.launch {
+            when (event.setting) {
+                ReaderSettingsEvent.NIGHT_MODE -> {
+                    applyTheme()
+                }
+                ReaderSettingsEvent.READER_MODE -> {
+                    binding.readerWebView.loadUrl("about:blank")
+                    binding.readerWebView.clearHistory()
+                    binding.readerWebView.settings.javaScriptEnabled =
+                        !dataCenter.javascriptDisabled || dataCenter.readerMode
+                    loadData()
+                }
+                ReaderSettingsEvent.TEXT_SIZE -> {
+                    changeTextSize()
+                }
+                ReaderSettingsEvent.JAVA_SCRIPT -> {
+                    binding.readerWebView.settings.javaScriptEnabled =
+                        !dataCenter.javascriptDisabled || dataCenter.readerMode
+                    loadData()
+                }
+                ReaderSettingsEvent.FONT -> {
+                    loadData()
+                }
             }
         }
     }

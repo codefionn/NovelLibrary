@@ -261,7 +261,7 @@ class ChaptersViewModel(private val state: SavedStateHandle) : ViewModel(), Life
                 val chaptersSettingsList = chapterSettings ?: return@forEach
                 val webPageSettings = chaptersSettingsList.firstOrNull { it.url == webPage.url }
                         ?: return@forEach
-                webPageSettings.isRead = if (readStatus) 1 else 0
+                webPageSettings.isRead = readStatus
                 db.webPageSettingsDao().updateWebPageSettingsReadStatus(webPageSettings)
                 actionModeProgress.postValue(counter++.toString())
             }
