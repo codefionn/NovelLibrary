@@ -185,7 +185,6 @@ class ReaderDBPagerActivity :
         if (webPageSettings != null) {
             webPageSettings.isRead = true
             db.webPageSettingsDao().updateWebPageSettingsReadStatus(webPageSettings)
-            println(db.webPageSettingsDao().findOneByUrl(webPage.url))
         }
     }
 
