@@ -32,17 +32,20 @@ import io.github.gmathi.novellibrary.extensions.applyFont
 import io.github.gmathi.novellibrary.extensions.setDefaultsNoAnimation
 import io.github.gmathi.novellibrary.model.database.Novel
 import io.github.gmathi.novellibrary.util.Constants
+import io.github.gmathi.novellibrary.util.lang.launchIO
+import io.github.gmathi.novellibrary.util.lang.launchUI
 import io.github.gmathi.novellibrary.util.system.toast
 import io.github.gmathi.novellibrary.util.view.CustomDividerItemDecoration
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.map
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
+import org.jsoup.select.Elements
 import uy.kohesive.injekt.injectLazy
 import java.net.URL
 import java.util.concurrent.atomic.AtomicBoolean
@@ -111,34 +114,44 @@ class ImportLibraryActivity : BaseActivity(), GenericAdapter.Listener<ImportList
         binding.contentImportLibrary.progressLayout.showEmpty(resId = R.raw.no_data_blob, emptyText = "Add a URL to see your reading list here", isLottieAnimation = true)
     }
 
+    private suspend fun getNovelUrlsFromUrl(): Elements {
+        var responseString = withContext(Dispatchers.IO) { getNovelListResponse() } ?: throw Exception(NETWORK_ERROR)
+        responseString = responseString.replace("\\\"", "\"")
+            .replace("\\n", "")
+            .replace("\\t", "")
+            .replace("\\/", "/")
+
+        val doc: Document = Jsoup.parse(responseString)
+        return doc.body().select("a.mb-box-btn") ?: throw Exception(NETWORK_ERROR)
+    }
+
+    private suspend fun getNovelFromAElement(element: Element): ImportListItem = withContext(Dispatchers.IO) {
+        val importItem = ImportListItem(element.attr("href"))
+        importItem.novelName = element.getElementsByClass("title")?.firstOrNull()?.text()
+        val styleAttr = element.getElementsByClass("icon-thumb")?.firstOrNull()?.attr("style")
+        if (styleAttr != null && styleAttr.length > 26)
+            importItem.novelImageUrl = styleAttr.substring(22, styleAttr.length - 3)
+        importItem.currentlyReadingChapterName = element.getElementsByClass("cr_status")?.firstOrNull()?.text()
+        importItem.currentlyReading = element.getElementsByClass("cr_status")?.firstOrNull()?.parent()?.text()
+        importItem.isAlreadyInLibrary = dbHelper.getNovelByUrl(importItem.novelUrl) != null
+        importItem
+    }
+
     @Suppress("BlockingMethodInNonBlockingContext")
     private fun getNovelsFromUrl() {
         lifecycleScope.launch {
             binding.contentImportLibrary.progressLayout.showLoading()
             try {
-                var responseString = withContext(Dispatchers.IO) { getNovelListResponse() } ?: throw Exception(NETWORK_ERROR)
-                responseString = responseString.replace("\\\"", "\"")
-                    .replace("\\n", "")
-                    .replace("\\t", "")
-                    .replace("\\/", "/")
-
-                val doc: Document = Jsoup.parse(responseString)
-                val novels = doc.body().select("a.mb-box-btn") ?: throw Exception(NETWORK_ERROR)
+                val novels = getNovelUrlsFromUrl()
                 if (novels.isNotEmpty()) {
                     adapter.removeAllItems()
-                    val importListItems = ArrayList<ImportListItem>()
+                    val importListItems = ArrayList<Deferred<ImportListItem>>()
                     novels.mapTo(importListItems) {
-                        val importItem = ImportListItem(it.attr("href"))
-                        importItem.novelName = it.getElementsByClass("title")?.firstOrNull()?.text()
-                        val styleAttr = it.getElementsByClass("icon-thumb")?.firstOrNull()?.attr("style")
-                        if (styleAttr != null && styleAttr.length > 26)
-                            importItem.novelImageUrl = styleAttr.substring(22, styleAttr.length - 3)
-                        importItem.currentlyReadingChapterName = it.getElementsByClass("cr_status")?.firstOrNull()?.text()
-                        importItem.currentlyReading = it.getElementsByClass("cr_status")?.firstOrNull()?.parent()?.text()
-                        importItem.isAlreadyInLibrary = dbHelper.getNovelByUrl(importItem.novelUrl) != null
-                        importItem
+                        async { getNovelFromAElement(it) }
                     }
-                    adapter.addItems(importListItems)
+                    adapter.addItems(importListItems.map {
+                        it.await()
+                    })
                     binding.contentImportLibrary.progressLayout.showContent()
                     binding.contentImportLibrary.headerLayout.visibility = View.VISIBLE
                 } else {
@@ -153,8 +166,8 @@ class ImportLibraryActivity : BaseActivity(), GenericAdapter.Listener<ImportList
         }
     }
 
-    private fun getNovelListResponse(): String? {
-        val url = getUrl() ?: return null
+    private suspend fun getNovelListResponse(): String? = withContext(Dispatchers.IO) {
+        val url = getUrl() ?: return@withContext null
         val userId = getUserIdFromUrl(url)
         val adminUrl = "https://www.novelupdates.com/wp-admin/admin-ajax.php"
         val formBody: RequestBody = FormBody.Builder()
@@ -164,7 +177,7 @@ class ImportLibraryActivity : BaseActivity(), GenericAdapter.Listener<ImportList
             .add("isMobile", "yes")
             .build()
         val request = POST(adminUrl, body = formBody)
-        return client.newCall(request).execute().body?.string()
+        return@withContext client.newCall(request).execute().body?.string()
     }
 
     private fun getUserIdFromUrl(urlString: String): String {
@@ -298,6 +311,9 @@ class ImportLibraryActivity : BaseActivity(), GenericAdapter.Listener<ImportList
         if (isImporting.get()) {
             return
         }
+        if (updateSet.isEmpty()) {
+            return
+        }
 
         isImporting.set(true)
 
@@ -310,6 +326,7 @@ class ImportLibraryActivity : BaseActivity(), GenericAdapter.Listener<ImportList
                         this@ImportLibraryActivity.job?.cancel()
                         this@ImportLibraryActivity.actionMode?.finish()
                         this@ImportLibraryActivity.adapter.notifyDataSetChanged()
+                        this@ImportLibraryActivity.isImporting.set(false)
                         snackProgressBarManager.disable()
                     }
                 }
@@ -317,17 +334,28 @@ class ImportLibraryActivity : BaseActivity(), GenericAdapter.Listener<ImportList
             .setProgressMax(updateSet.count())
         snackProgressBarManager.show(snackProgressBar, SnackProgressBarManager.LENGTH_INDEFINITE)
 
-        job = lifecycleScope.launch {
+        job = launchIO {
             var progressCnt: Int = 0
-            updateSet.asSequence().forEach {
-                snackProgressBarManager.updateTo(snackProgressBar.setMessage("Importing: ${it.novelName}"))
-                withContext(Dispatchers.IO) { importNovelToLibrary(it) }
-                it.isAlreadyInLibrary = true
-                snackProgressBarManager.setProgress(++progressCnt)
+            updateSet.asIterable().map {
+                async(Dispatchers.Main) {
+                    snackProgressBarManager.updateTo(snackProgressBar.setMessage("Importing: ${it.novelName}"))
+                }
+                return@map async {
+                    importNovelToLibrary(it)
+                    it.isAlreadyInLibrary = true
+                    async (Dispatchers.Main) {
+                        snackProgressBarManager.updateTo(snackProgressBar.setMessage("Importing: ${it.novelName}"))
+                        snackProgressBarManager.setProgress(++progressCnt)
+                    }
+                    return@async it
+                }
+            }.map { it.await() }
+
+            withContext(Dispatchers.Main) {
+                actionMode?.finish()
+                adapter.notifyDataSetChanged()
+                snackProgressBarManager.disable()
             }
-            actionMode?.finish()
-            adapter.notifyDataSetChanged()
-            snackProgressBarManager.disable()
             isImporting.set(false)
         }
     }
