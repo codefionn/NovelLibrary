@@ -40,7 +40,7 @@ class LNMTLSource : HttpSource() {
     override val name: String
         get() = "LNMTL"
 
-    var shouldFetchNovels = false
+    var shouldFetchNovels = true
 
     override fun headersBuilder(): Headers.Builder = Headers.Builder()
         .add("User-Agent", USER_AGENT)
@@ -170,11 +170,13 @@ class LNMTLSource : HttpSource() {
 
             novelsLNMTL = ArrayList()
             val novels: List<LNMTLNovelJson> = Gson().fromJson(json, Array<LNMTLNovelJson>::class.java).toList()
-            novels.forEach { novelLNMTL ->
-                val novel = Novel(novelLNMTL.name, novelLNMTL.url, id)
-                novel.imageUrl = novelLNMTL.image
-                novelsLNMTL?.add(novel)
+            val mappedNovels = novels.map {
+                val novel = Novel(it.name, it.url, id)
+                novel.imageUrl = it.image
+                novel
             }
+            novelsLNMTL = ArrayList(mappedNovels)
+
         } catch (e: SSLPeerUnverifiedException) {
             val p = Pattern.compile("Hostname\\s(.*?)\\snot", Pattern.DOTALL or Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE or Pattern.MULTILINE) // Regex for the value of the key
             val m = p.matcher(e.localizedMessage ?: "")
@@ -210,12 +212,6 @@ class LNMTLSource : HttpSource() {
 
         // Below is to cache Neovel Genres & Tags
         private var novelsLNMTL: ArrayList<Novel>? = null
-    }
-
-    init {
-
-        getNovelsLNMTL()
-
     }
 
     private class LNMTLNovelJson(
